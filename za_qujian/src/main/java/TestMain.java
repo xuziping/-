@@ -1,9 +1,6 @@
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class TestMain {
@@ -12,10 +9,8 @@ public class TestMain {
     private static final File INPUT_FILE = new File(FILE_PATH, "input.txt");
     private static final File OUTPUT_FILE = new File(FILE_PATH, "output.txt");
 
-    private static final int MAX_SIZE = 1000000000;
     private static Map<Pair, Long> C_MAP = new HashMap<>(100000);
     private static int MAX_LINE = 0;
-    private static boolean hasDirty = false;
 
     private static long getMaxValueAfterRemoveOneChild(Pair pair) {
         if (C_MAP.get(pair) != null) {
@@ -27,29 +22,30 @@ public class TestMain {
             return 0;
         }
         if (length == 2) {
-            return Math.max(pair.children.get(0).getValue(), pair.children.get(1).getValue());
+            return Math.max(pair.children.first().getValue(), pair.children.last().getValue());
         }
+        List<Pair> childrenList = pair.getChildrenList();
         long v = 0;
         long max = 0;
         int d = 1;
         for (int i = 0; i < length; i++) {
             if (i == 0) {
                 for (d = 1; d < length; d++) {
-                    if (pair.children.get(d).end >= pair.children.get(0).end) {
+                    if (childrenList.get(d).end >= childrenList.get(0).end) {
                         break;
                     }
                 }
-                v = pair.end - pair.children.get(d).start;
+                v = pair.end - childrenList.get(d).start;
             } else if (i == length - 1) {
                 for (d = length - 2; d >= 0; d--) {
-                    if (pair.children.get(d).start <= pair.children.get(i).start) {
+                    if (childrenList.get(d).start <= childrenList.get(i).start) {
                         break;
                     }
                 }
-                v = pair.children.get(d).end - pair.start;
+                v = childrenList.get(d).end - pair.start;
             } else {
                 // 大于3个个数
-                v = pair.children.get(i - 1).end + pair.getValue() - pair.children.get(i + 1).start;
+                v = childrenList.get(i - 1).end + pair.getValue() - childrenList.get(i + 1).start;
             }
             if (v >= max) {
                 max = v;
@@ -64,26 +60,9 @@ public class TestMain {
         TestMain main = new TestMain();
         long result = main.process();
         write2File(OUTPUT_FILE, "" + result);
-//        System.out.println("value: " + result);
+        System.out.println("value: " + result);
 
-        System.out.println(System.currentTimeMillis() - ts);
-//        System.out.println("SPEND TIME: " + (System.currentTimeMillis() - ts));
-//        BitMap bitMap = new BitMap(MAX_LENGTH);
-//        BitMap doubleBitMap = new BitMap(MAX_LENGTH);
-//        for(String line: sortedLines) {
-//            String[] values = line.split(" ");
-//            int start = Integer.parseInt(values[0].trim());
-//            int end = Integer.parseInt(values[1].trim());
-//            if (start <= end && start > 0 && end <= MAX_LENGTH ){
-//                for(int i = start; i <= end; i++) {
-//                    if(bitMap.getBit(i) != 0) {
-//                        doubleBitMap.setBit(i);
-//                    } else {
-//                        bitMap.setBit(i);
-//                    }
-//                }
-//            }
-//        }
+        System.out.println("Total spend: " + (System.currentTimeMillis() - ts));
     }
 
 
@@ -97,17 +76,14 @@ public class TestMain {
     }
 
     public long process() throws Exception {
-        List<Pair> pairs = loadData();
+        TreeSet<Pair> pairs = loadData();
         long result = 0;
         if (pairs.size() == 1) {
-            result = pairs.get(0).getValue();
+            result = pairs.pollFirst().getValue();
         } else {
             List<Pair> newPairs = merge(pairs);
-            if (hasDirty || newPairs.parallelStream().filter(x -> x.unneed == true).findFirst().isPresent()) {
+            if (newPairs.parallelStream().filter(x -> x.unneed == true).findFirst().isPresent()) {
                 result = newPairs.parallelStream().mapToLong(x -> x.getValue()).sum();
-//                for(Pair p: newPairs){
-//                    result += p.getValue();
-//                }
             } else if (newPairs.size() > 1) {
                 newPairs = newPairs.parallelStream().sorted((x, y) -> {
                     return (int) ((x.getValue() - getMaxValueAfterRemoveOneChild(x)) -
@@ -123,125 +99,53 @@ public class TestMain {
         return result;
     }
 
-    public List<Pair> loadData() throws Exception {
+    public TreeSet<Pair> loadData() throws Exception {
         long ts = System.currentTimeMillis();
-        List<Pair> ret = readLines(INPUT_FILE);
-        System.out.println("loadData spend: " + (System.currentTimeMillis() - ts));
+        TreeSet<Pair> ret = readLines(INPUT_FILE);
+//        System.out.println("loadData spend: " + (System.currentTimeMillis() - ts));
         return ret;
     }
 
-//    public List<Pair> trimPairs(List<Pair> pairs) throws Exception {
-//        List<Pair> ret = new ArrayList<>();
-//        if (pairs != null && pairs.size() > 0) {
-//            for (Pair p : pairs) {
-//                boolean isIncluded = false;
-//                for (Pair r : ret) {
-//                    if (r.start <= p.start && r.end >= p.end) {
-//                        isIncluded = true;
-//                    }
-//                    if (r.start <= p.start) {
-//
-//                    }
-//                    if (r.end >= r.end) {
-//
-//                    }
-//                }
-//                if (!isIncluded) {
-//                    ret.add(p);
-//                }
-//            }
-//        }
-//        return ret;
-//    }
-//
-//    static public class BitMap {
-//        final int[] BIT_VALUE = {0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020,
-//                0x00000040, 0x00000080, 0x00000100, 0x00000200, 0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000,
-//                0x00008000, 0x00010000, 0x00020000, 0x00040000, 0x00080000, 0x00100000, 0x00200000, 0x00400000, 0x00800000,
-//                0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000};
-//        long length;
-//        int[] bitsMap;
-//
-//        public BitMap(long length) {
-//            this.length = length;
-//            bitsMap = new int[(int) (length >> 5) + ((length & 31) > 0 ? 1 : 0)];
-//        }
-//
-//        public int getBit(long index) {
-//            if (index < 0 || index > length) {
-//                throw new IllegalArgumentException("length value illegal!");
-//            }
-//            int intData = (int) bitsMap[(int) ((index - 1) >> 5)];
-//            return ((intData & BIT_VALUE[(int) ((index - 1) & 31)])) >>> ((index - 1) & 31);
-//        }
-//
-//        public void setBit(long index) {
-//            if (index < 0 || index > length) {
-//                throw new IllegalArgumentException("length value illegal!");
-//            }
-//            int belowIndex = (int) ((index - 1) >> 5);
-//            int offset = (int) ((index - 1) & 31);
-//            int inData = bitsMap[belowIndex];
-//            bitsMap[belowIndex] = inData | BIT_VALUE[offset];
-//        }
-//    }
-
-    public List<Pair> merge(List<Pair> intervals) {
+    public List<Pair> merge(TreeSet<Pair> intervals) {
         long ts = System.currentTimeMillis();
-        List<Pair> ret = new ArrayList<>(MAX_LINE);
-        intervals = intervals.parallelStream().sorted((x, y) -> {
-            return x.start - y.start;
-        }).collect(Collectors.toList());
-        System.out.println("Merge sort spend: " + (System.currentTimeMillis() - ts));
-        Pair current = new Pair(intervals.get(0).start, intervals.get(0).end);
-        current.addChild(intervals.get(0));
-        ret.add(current);
-        for (int i = 1; i < intervals.size(); i++) {
-            Pair p = intervals.get(i);
-            if (p.start <= current.end) {
-                if (p.end > current.end) {
-                    current.addChild(p);
+        List<Pair> ret = new LinkedList<>();
+        Iterator<Pair> it = intervals.iterator();
+        Pair current = it.next();
+        Pair node = new Pair(current.start, current.end, true);
+        ret.add(node);
+        while (it.hasNext()) {
+            Pair p = it.next();
+            if (p.start <= node.end) {
+                if (p.end > node.end) {
+                    node.addChild(p);
                 } else {
-                    current.addIncluded(p);
+                    node.addIncluded(p);
                 }
             } else {
-                current = new Pair(p.start, p.end);
-                current.addChild(p);
-                ret.add(current);
+                node = new Pair(p.start, p.end, true);
+                ret.add(node);
             }
         }
 //        ret.forEach(x->System.out.println(x.toString()));
-        System.out.println("Merge spend: " + (System.currentTimeMillis() - ts));
+//        System.out.println("Merge spend: " + (System.currentTimeMillis() - ts));
         return ret;
     }
 
-    public List<Pair> readLines(File file) throws Exception {
+    public TreeSet<Pair> readLines(File file) throws Exception {
         try (BufferedInputStream fis = new BufferedInputStream(new FileInputStream(file));
-             BufferedReader reader = new BufferedReader(new InputStreamReader(fis, "utf-8"), 30 * 1024 * 1024);) {
+             BufferedReader reader = new BufferedReader(new InputStreamReader(fis, "utf-8"), 10 * 1024 * 1024);) {
             String line = null;
             String[] values = null;
             int start, end = 0;
             MAX_LINE = Integer.parseInt(reader.readLine().trim());
-            List<Pair> ret = new ArrayList<>(MAX_LINE);
-            Map<Integer, Pair> cached = new HashMap<>(MAX_LINE);
-//            int rowNum = 1;
+            TreeSet<Pair> ret = new TreeSet();
             while ((line = reader.readLine()) != null) {
 //                try {
 //                    rowNum++;
                     values = line.split(" ");
                     start = Integer.parseInt(values[0].trim());
                     end = Integer.parseInt(values[1].trim());
-                    if(cached.get(start) != null){
-                        hasDirty = true;
-                        Pair v = cached.get(start);
-                        if(v.end < end) {
-                            v.end = end;
-                        }
-                    } else {
-                        Pair v = new Pair(start, end);
-                        ret.add(v);
-//                    cached.put(start, v);
-                    }
+                    ret.add(new Pair(start, end, false));
 //                } catch(Exception e) {
 //                    System.out.println("Error Line: " + rowNum);
 //                }
@@ -250,16 +154,22 @@ public class TestMain {
         }
     }
 
-    public class Pair {
+    public class Pair implements Comparable<Pair>  {
         int start;
         int end;
         Integer value;
         boolean unneed = false;
-        List<Pair> children;
-
-        public Pair(int start, int end) {
+        TreeSet<Pair> children = null;
+        List<Pair> childrenList = null;
+        public Pair(int start, int end, boolean addChild) {
             this.start = start;
             this.end = end;
+            if(addChild) {
+                if(children == null){
+                    children = new TreeSet<>();
+                }
+                children.add(new Pair(start, end, false));
+            }
         }
 
         public int getValue() {
@@ -269,25 +179,24 @@ public class TestMain {
             value = end - start;
             return value;
         }
-
+        public List<Pair> getChildrenList(){
+            if(childrenList == null) {
+                childrenList = new ArrayList<>(children);
+            }
+            return childrenList;
+        }
         public void addChild(Pair p) {
-            if (children == null) {
-                children = new ArrayList<>(MAX_LINE / 10);
-            }
             if (children.size() >= 2) {
-                for (int i = children.size() - 2; i >= 0; i--) {
-                    if (p.start <= children.get(i).end) {
-                        Pair unneed = children.get(i + 1);
-                        children.remove(unneed);
-                        addIncluded(unneed);
-                    }
+                Iterator<Pair> it = children.descendingIterator();
+                it.next();
+                while(it.hasNext() && p.start <= it.next().end) {
+                    children.pollLast();
+                    unneed = true;
                 }
-            } else if (children.size() == 1 && p.start == children.get(0).start) {
-                Pair unneed = children.get(0);
-                children.remove(unneed);
-                addIncluded(unneed);
+            } else if (children.size() == 1 && p.start == children.first().start) {
+                children.pollFirst();
+                unneed = true;
             }
-
             children.add(p);
             end = p.end;
         }
@@ -300,15 +209,24 @@ public class TestMain {
         public String toString() {
             final StringBuilder sb = new StringBuilder("[start=" + start + ",end=" + end);
             if (children != null) {
+                childrenList = getChildrenList();
                 sb.append(",children=");
-                for(int i=0;i<children.size();i++){
-                    sb.append( "{" + children.get(i).start +"," + children.get(i).end + "} ");
+                for(int i=0;i<childrenList.size();i++){
+                    sb.append( "{" + childrenList.get(i).start +"," + childrenList.get(i).end + "} ");
                 }
             }
             if (unneed) {
                 sb.append( ",unneed=true");
             }
             return sb.toString() + "]";
+        }
+
+        @Override
+        public int compareTo(Pair o) {
+            if(start != o.start) {
+                return start - o.start;
+            }
+            return end - o.end;
         }
     }
 }
