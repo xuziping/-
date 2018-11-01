@@ -13,6 +13,7 @@ public class TestMain {
     private static int MAX_LINE = 0;
 
     private static long getMaxValueAfterRemoveOneChild(Pair pair) {
+//        return pair.getValue() - pair.min;
         if (C_MAP.get(pair) != null) {
             return C_MAP.get(pair);
         }
@@ -61,7 +62,6 @@ public class TestMain {
         long result = main.process();
         write2File(OUTPUT_FILE, "" + result);
         System.out.println("value: " + result);
-
         System.out.println("Total spend: " + (System.currentTimeMillis() - ts));
     }
 
@@ -100,7 +100,7 @@ public class TestMain {
     }
 
     public TreeSet<Pair> loadData() throws Exception {
-        long ts = System.currentTimeMillis();
+//        long ts = System.currentTimeMillis();
         TreeSet<Pair> ret = readLines(INPUT_FILE);
 //        System.out.println("loadData spend: " + (System.currentTimeMillis() - ts));
         return ret;
@@ -127,7 +127,7 @@ public class TestMain {
             }
         }
 //        ret.forEach(x->System.out.println(x.toString()));
-//        System.out.println("Merge spend: " + (System.currentTimeMillis() - ts));
+        System.out.println("Merge spend: " + (System.currentTimeMillis() - ts));
         return ret;
     }
 
@@ -136,16 +136,33 @@ public class TestMain {
              BufferedReader reader = new BufferedReader(new InputStreamReader(fis, "utf-8"), 10 * 1024 * 1024);) {
             String line = null;
             String[] values = null;
-            int start, end = 0;
+            int v1, v2 = 0;
             MAX_LINE = Integer.parseInt(reader.readLine().trim());
             TreeSet<Pair> ret = new TreeSet();
             while ((line = reader.readLine()) != null) {
 //                try {
 //                    rowNum++;
-                    values = line.split(" ");
-                    start = Integer.parseInt(values[0].trim());
-                    end = Integer.parseInt(values[1].trim());
-                    ret.add(new Pair(start, end, false));
+//                    values = line.split(" ");
+//                    v1 = Integer.parseInt(values[0].trim());
+//                    v2 = Integer.parseInt(values[1].trim());
+//                int i = line.indexOf(" ");
+//                v1 = Integer.parseInt(line.substring(0, i));
+//                v2 = Integer.parseInt(line.substring(i+1));
+
+
+                // 优化性能
+                int i = 0;
+                char c;
+                v1 = 0;
+                while ((c = line.charAt(i++)) != 32) {
+                    v1 = v1 * 10 + c - 48;
+                }
+                v2 = 0;
+                while (i < line.length()) {
+                    v2 = v2 * 10 + line.charAt(i++) - 48;
+                }
+
+                    ret.add(new Pair(v1, v2, false));
 //                } catch(Exception e) {
 //                    System.out.println("Error Line: " + rowNum);
 //                }
@@ -157,6 +174,7 @@ public class TestMain {
     public class Pair implements Comparable<Pair>  {
         int start;
         int end;
+        int min;
         Integer value;
         boolean unneed = false;
         TreeSet<Pair> children = null;
@@ -164,6 +182,7 @@ public class TestMain {
         public Pair(int start, int end, boolean addChild) {
             this.start = start;
             this.end = end;
+            this.min = start - end;
             if(addChild) {
                 if(children == null){
                     children = new TreeSet<>();
